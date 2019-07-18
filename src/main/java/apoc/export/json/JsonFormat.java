@@ -9,6 +9,8 @@ import apoc.result.ProgressInfo;
 import apoc.util.JsonUtil;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.SerializableString;
+import com.fasterxml.jackson.core.io.CharacterEscapes;
 import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
 import org.neo4j.cypher.export.SubGraph;
 import org.neo4j.graphdb.*;
@@ -78,6 +80,18 @@ public class JsonFormat implements Format {
         JsonGenerator jsonGenerator = jsonF.createGenerator(writer);
         jsonGenerator.setCodec(JsonUtil.OBJECT_MAPPER);
         jsonGenerator.setPrettyPrinter(new MinimalPrettyPrinter("\n"));
+        jsonGenerator.setCharacterEscapes(new CharacterEscapes() {
+            @Override
+            public int[] getEscapeCodesForAscii() {
+                return new int[0];
+            }
+
+            @Override
+            public SerializableString getEscapeSequence(int ch) {
+                return null;
+            }
+        });
+
         return jsonGenerator;
     }
 
