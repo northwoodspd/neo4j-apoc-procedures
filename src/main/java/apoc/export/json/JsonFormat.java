@@ -15,10 +15,8 @@ import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
 import org.neo4j.cypher.export.SubGraph;
 import org.neo4j.graphdb.*;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,13 +84,79 @@ public class JsonFormat implements Format {
 
             @Override
             public int[] getEscapeCodesForAscii() {
-                esc[(int) '"'] = CharacterEscapes.ESCAPE_NONE;
+                esc[(int) '"'] = CharacterEscapes.ESCAPE_CUSTOM;
                 return esc;
             }
 
             @Override
             public SerializableString getEscapeSequence(int ch) {
-                return null;
+                return new SerializableString() {
+                    private final String value = Character.toString((char) ch);
+                    @Override
+                    public String getValue() {
+                        return value;
+                    }
+
+                    @Override
+                    public int charLength() {
+                        return value.length();
+                    }
+
+                    @Override
+                    public char[] asQuotedChars() {
+                        return new char[0];
+                    }
+
+                    @Override
+                    public byte[] asUnquotedUTF8() {
+                        return new byte[0];
+                    }
+
+                    @Override
+                    public byte[] asQuotedUTF8() {
+                        return new byte[0];
+                    }
+
+                    @Override
+                    public int appendQuotedUTF8(byte[] buffer, int offset) {
+                        return 0;
+                    }
+
+                    @Override
+                    public int appendQuoted(char[] buffer, int offset) {
+                        return 0;
+                    }
+
+                    @Override
+                    public int appendUnquotedUTF8(byte[] buffer, int offset) {
+                        return 0;
+                    }
+
+                    @Override
+                    public int appendUnquoted(char[] buffer, int offset) {
+                        return 0;
+                    }
+
+                    @Override
+                    public int writeQuotedUTF8(OutputStream out) throws IOException {
+                        return 0;
+                    }
+
+                    @Override
+                    public int writeUnquotedUTF8(OutputStream out) throws IOException {
+                        return 0;
+                    }
+
+                    @Override
+                    public int putQuotedUTF8(ByteBuffer buffer) throws IOException {
+                        return 0;
+                    }
+
+                    @Override
+                    public int putUnquotedUTF8(ByteBuffer out) throws IOException {
+                        return 0;
+                    }
+                };
             }
         });
 
