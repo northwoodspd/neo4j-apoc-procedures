@@ -54,8 +54,7 @@ public class JsonFormat implements Format {
                 throw new RuntimeException(e);
             }
         };
-        PrintWriter json = writer.getPrintWriter("json");
-        return dump(json, reporter, consumer);
+        return dump(writer.getPrintWriter("json"), reporter, consumer);
     }
 
     public ProgressInfo dump(Result result, ExportFileManager writer, Reporter reporter, ExportConfig config) throws Exception {

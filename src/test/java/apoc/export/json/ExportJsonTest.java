@@ -14,8 +14,7 @@ import java.io.File;
 import java.util.Map;
 
 import static apoc.util.MapUtil.map;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class ExportJsonTest {
 
@@ -26,6 +25,11 @@ public class ExportJsonTest {
     static { //noinspection ResultOfMethodCallIgnored
         directory.mkdirs();
     }
+
+    public static final String EXPECTED_ALL = "{\"type\":\"node\",\"id\":\"0\",\"labels\":[\"User\"],\"properties\":{\"born\":\"2015-07-04T19:32:24\",\"name\":\"Adam\",\"place\":{\"crs\":\"wgs-84\",\"latitude\":33.46789,\"longitude\":13.1,\"height\":null},\"male\":true,\"age\":42,\"kids\":[\"Sam\",\"Anna\",\"Grace\"]}}\n" +
+            "{\"type\":\"node\",\"id\":\"1\",\"labels\":[\"User\"],\"properties\":{\"name\":\"Jim\",\"age\":42}}\n" +
+            "{\"type\":\"node\",\"id\":\"2\",\"labels\":[\"User\"],\"properties\":{\"age\":12}}\n" +
+            "{\"id\":\"0\",\"type\":\"relationship\",\"label\":\"KNOWS\",\"properties\":{\"since\":1993},\"start\":{\"id\":\"0\",\"labels\":[\"User\"]},\"end\":{\"id\":\"1\",\"labels\":[\"User\"]}}";
 
     @Before
     public void setUp() throws Exception {
@@ -332,8 +336,31 @@ public class ExportJsonTest {
         String statement = "CALL apoc.export.json.all(null,{stream:true,batchSize:2})";
         StringBuilder sb=new StringBuilder();
         TestUtil.testResult(db, statement, (res) -> {
-            Map<String, Object> foo = res.next();
+            Map<String, Object> r = res.next();
+            assertEquals(2L, r.get("batchSize"));
+            assertEquals(1L, r.get("batches"));
+            assertEquals(2L, r.get("nodes"));
+            assertEquals(2L, r.get("rows"));
+            assertEquals(0L, r.get("relationships"));
+            assertEquals(8L, r.get("properties"));
+            assertNull("Should get file",r.get("file"));
+            assertEquals("json", r.get("format"));
+            assertTrue("Should get time greater than 0", ((long) r.get("time")) >= 0);
+            sb.append(r.get("data"));
+            r = res.next();
+            assertEquals(2L, r.get("batchSize"));
+            assertEquals(2L, r.get("batches"));
+            assertEquals(3L, r.get("nodes"));
+            assertEquals(4L, r.get("rows"));
+            assertEquals(1L, r.get("relationships"));
+            assertEquals(10L, r.get("properties"));
+            assertTrue("Should get time greater than 0",((long) r.get("time")) >= 0);
+
+            sb.append(r.get("data"));
         });
+
+        assertEquals(EXPECTED_ALL, sb.toString());
+
     }
 
     private void assertResults(String filename, Map<String, Object> r, final String source) {

@@ -22,6 +22,7 @@ public enum JsonFormatSerializer {
             jsonGenerator.writeStringField("type", "node");
             writeNodeDetails(jsonGenerator, node, true);
             jsonGenerator.writeEndObject();
+            jsonGenerator.flush();
         }
 
         @Override
@@ -36,6 +37,7 @@ public enum JsonFormatSerializer {
             writeRelationshipNode(jsonGenerator, "start", startNode, config);
             writeRelationshipNode(jsonGenerator, "end", endNode, config);
             jsonGenerator.writeEndObject();
+            jsonGenerator.flush();
         }
 
         @Override
