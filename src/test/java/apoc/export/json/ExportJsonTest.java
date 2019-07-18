@@ -327,6 +327,15 @@ public class ExportJsonTest {
         assertFileEquals(filename);
     }
 
+    @Test
+    public void testExportAllJsonStreaming() {
+        String statement = "CALL apoc.export.json.all(null,{stream:true,batchSize:2})";
+        StringBuilder sb=new StringBuilder();
+        TestUtil.testResult(db, statement, (res) -> {
+            Map<String, Object> foo = res.next();
+        });
+    }
+
     private void assertResults(String filename, Map<String, Object> r, final String source) {
         assertEquals(3L, r.get("nodes"));
         assertEquals(1L, r.get("relationships"));

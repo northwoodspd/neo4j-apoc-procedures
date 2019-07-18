@@ -1,12 +1,15 @@
 package apoc.export.json;
 
 import apoc.Description;
+import apoc.Pools;
+import apoc.export.csv.CsvFormat;
 import apoc.export.cypher.ExportFileManager;
 import apoc.export.cypher.FileManagerFactory;
 import apoc.export.util.ExportConfig;
 import apoc.export.util.NodesAndRelsSubGraph;
 import apoc.export.util.ProgressReporter;
 import apoc.result.ProgressInfo;
+import apoc.util.QueueBasedSpliterator;
 import apoc.util.Util;
 import org.neo4j.cypher.export.DatabaseSubGraph;
 import org.neo4j.cypher.export.SubGraph;
@@ -17,19 +20,25 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
+import org.neo4j.procedure.TerminationGuard;
 
 import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static apoc.util.FileUtils.checkWriteAllowed;
 
 public class ExportJson {
     @Context
     public GraphDatabaseService db;
+
+    @Context
+    public TerminationGuard terminationGuard;
 
     public ExportJson(GraphDatabaseService db) {
         this.db = db;
@@ -72,20 +81,39 @@ public class ExportJson {
         return exportJson(fileName, source,result,config);
     }
 
+
     private Stream<ProgressInfo> exportJson(@Name("file") String fileName, String source, Object data, Map<String,Object> config) throws Exception {
         checkWriteAllowed();
-        ExportConfig c = new ExportConfig(config);
-        ProgressReporter reporter = new ProgressReporter(null, null, new ProgressInfo(fileName, source, "json"));
+        ExportConfig exportConfig = new ExportConfig(config);
+        ProgressInfo progressInfo = new ProgressInfo(fileName, source, "json");
+        progressInfo.batchSize = exportConfig.getBatchSize();
+        ProgressReporter reporter = new ProgressReporter(null, null, progressInfo);
         JsonFormat exporter = new JsonFormat(db);
 
-        ExportFileManager cypherFileManager = FileManagerFactory.createFileManager(fileName, false, c.streamStatements());
-
-        try (PrintWriter printWriter = cypherFileManager.getPrintWriter("json")) {
-            if (data instanceof SubGraph)
-                exporter.dump(((SubGraph)data),cypherFileManager,reporter,c);
-            if (data instanceof Result)
-                exporter.dump(((Result)data),printWriter,reporter,c);
+        ExportFileManager cypherFileManager = FileManagerFactory
+                .createFileManager(fileName, exportConfig.isBulkImport(), exportConfig.streamStatements());
+        if (exportConfig.streamStatements()) {
+            long timeout = exportConfig.getTimeoutSeconds();
+            final ArrayBlockingQueue<ProgressInfo> queue = new ArrayBlockingQueue<>(1000);
+            ProgressReporter reporterWithConsumer = reporter.withConsumer(
+                    (pi) -> Util.put(queue, pi == ProgressInfo.EMPTY ? ProgressInfo.EMPTY : new ProgressInfo(pi).drain(cypherFileManager.getStringWriter("json")), timeout)
+            );
+            Util.inTxFuture(Pools.DEFAULT, db, () -> {
+                dump(data, exportConfig, reporterWithConsumer, cypherFileManager, exporter);
+                return true;
+            });
+            QueueBasedSpliterator<ProgressInfo> spliterator = new QueueBasedSpliterator<>(queue, ProgressInfo.EMPTY, terminationGuard, timeout);
+            return StreamSupport.stream(spliterator, false);
+        } else {
+            dump(data, exportConfig, reporter, cypherFileManager, exporter);
+            return reporter.stream();
         }
-        return reporter.stream();
+    }
+
+    private void dump(Object data, ExportConfig c, ProgressReporter reporter, ExportFileManager printWriter, JsonFormat exporter) throws Exception {
+        if (data instanceof SubGraph)
+            exporter.dump((SubGraph)data,printWriter,reporter,c);
+        if (data instanceof Result)
+            exporter.dump((Result)data,printWriter,reporter,c);
     }
 }

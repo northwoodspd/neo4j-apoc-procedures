@@ -14,6 +14,7 @@ import org.neo4j.cypher.export.SubGraph;
 import org.neo4j.graphdb.*;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.HashMap;
@@ -53,23 +54,24 @@ public class JsonFormat implements Format {
                 throw new RuntimeException(e);
             }
         };
-        return dump(writer.getPrintWriter("json"), reporter, consumer);
+        PrintWriter json = writer.getPrintWriter("json");
+        return dump(json, reporter, consumer);
     }
 
-    public ProgressInfo dump(Result result, Writer writer, Reporter reporter, ExportConfig config) throws Exception {
+    public ProgressInfo dump(Result result, ExportFileManager writer, Reporter reporter, ExportConfig config) throws Exception {
         Consumer<JsonGenerator> consumer = (jsonGenerator) -> {
-            try {
-                String[] header = result.columns().toArray(new String[result.columns().size()]);
-                result.accept((row) -> {
-                    writeJsonResult(reporter, header, jsonGenerator, row, config);
-                    reporter.nextRow();
-                    return true;
-                });
-            } catch (IOException e) {
+                try {
+                    String[] header = result.columns().toArray(new String[result.columns().size()]);
+                    result.accept((row) -> {
+                        writeJsonResult(reporter, header, jsonGenerator, row, config);
+                        reporter.nextRow();
+                        return true;
+                    });
+                } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         };
-        return dump(writer, reporter, consumer);
+        return dump(writer.getPrintWriter("json"), reporter, consumer);
     }
 
     private JsonGenerator getJsonGenerator(Writer writer) throws IOException {

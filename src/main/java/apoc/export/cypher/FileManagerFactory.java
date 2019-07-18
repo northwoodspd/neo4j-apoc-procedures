@@ -84,7 +84,8 @@ public class FileManagerFactory {
             if (this.separatedFiles) {
                 return new PrintWriter(writers.compute(type, (key, writer) -> writer == null ? new StringWriter() : writer));
             } else {
-                return new PrintWriter(writers.compute(type.equals("csv") ? type : "cypher", (key, writer) -> writer == null ? new StringWriter() : writer));
+                String writerName = (type.equals("csv") || type.equals("json")) ? type : "cypher";
+                return new PrintWriter(writers.compute(writerName, (key, writer) -> writer == null ? new StringWriter() : writer));
             }
         }
 
