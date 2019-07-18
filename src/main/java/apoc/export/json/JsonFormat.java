@@ -82,9 +82,12 @@ public class JsonFormat implements Format {
         jsonGenerator.setCodec(JsonUtil.OBJECT_MAPPER);
         jsonGenerator.setPrettyPrinter(new MinimalPrettyPrinter("\n"));
         jsonGenerator.setCharacterEscapes(new CharacterEscapes() {
+            private final int[] esc = standardAsciiEscapesForJSON();
+
             @Override
             public int[] getEscapeCodesForAscii() {
-                return new int[0];
+                esc[(int) '"'] = CharacterEscapes.ESCAPE_NONE;
+                return esc;
             }
 
             @Override
