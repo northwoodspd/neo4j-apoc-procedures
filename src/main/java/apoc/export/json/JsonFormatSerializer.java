@@ -88,7 +88,12 @@ public enum JsonFormatSerializer {
         private void writeRelationshipNode(JsonGenerator jsonGenerator, String type, Node node, ExportConfig config) throws IOException {
             jsonGenerator.writeObjectFieldStart(type);
 
-            writeNodeDetails(jsonGenerator, node, config.writeNodeProperties());
+            writeNodeDetails(jsonGenerator, node, false);
+
+            if(config.writeNodeProperties()) {
+                serializeProperties(jsonGenerator, getProperties("uuid"));
+            }
+
             jsonGenerator.writeEndObject();
         }
     };
