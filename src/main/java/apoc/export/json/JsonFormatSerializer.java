@@ -83,7 +83,7 @@ public enum JsonFormatSerializer {
                 jsonGenerator.writeEndArray();
             }
             if (withNodeProperties) {
-                serializeProperties(jsonGenerator, node.getAllProperties());
+                serializeProperties(jsonGenerator, node.getProperties("uuid"));
             }
         }
 
